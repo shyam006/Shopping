@@ -49,6 +49,10 @@ Route::get('/Product','Product@index');
 Route::get('/Add_Product','Product@new');
 Route::get('/get_subcate/{id}','Product@get_subcate');
 Route::post('/add_new_product','Product@add');
+Route::get('/Edit_Product/{id}','Product@edit_product');
+Route::post('/edit_product_value/{id}','Product@update_product');
+Route::get('/View_Product/{id}','Product@view_product');
+Route::get('/Delete_product/{id}','Product@delete');
 
 
 

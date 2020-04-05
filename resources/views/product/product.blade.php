@@ -39,6 +39,7 @@
       <td class="{{ $product->status=='1'?'text-success':'text-danger' }} font-weight-bolder">{{ $product->status=='1'?'Active':'Inactive' }}</td>
       <td>
           <a href="/Edit_Product/{{ base64_encode($product->product_id) }}" class="btn btn-sm btn-info icon-fas" title="Edit"><i class="fas fa-edit "></i></a>
+          <a href="/View_Product/{{ base64_encode($product->product_id) }}" class="btn btn-sm btn-primary icon-fas" title="View"><i class="fas fa-eye "></i></a>
       </td>
     </tr>
   @endforeach

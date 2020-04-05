@@ -7,7 +7,7 @@
   <a class="d-none d-sm-inline-block btn btn-sm btn-secondary shadow-sm" href="/Product">Back</a>
 </div>
 <section class="section">
-    <h1>Add your Product</h1>
+    <h1>Edit your Product</h1>
     <div class="form-progress">
         <progress class="form-progress-bar" min="0" max="100" value="0" step="33" aria-labelledby="form-progress-completion"></progress>		
         <div class="form-progress-indicator one active"></div>
@@ -16,30 +16,42 @@
         <div class="form-progress-indicator four"></div>		
         <p id="form-progress-completion" class="js-form-progress-completion sr-only" aria-live="polite">0% complete</p>
     </div>	
+
+    @foreach($product as $products)
+    @endforeach
+
     <div class="animation-container">
-      <form action="/add_new_product" method="post"  enctype="multipart/form-data">
+      <form action="/edit_product_value/{{ base64_encode($products->product_id) }}" method="post"  enctype="multipart/form-data">
       @csrf
         <!-- Step one -->
         <div class="form-step js-form-step" data-step="1">
             <div class="form">
                 <div class="fieldgroup">
                     <select name="category" class="form-control" id="category">
-                        <option value="">Please Select Category</option>
                         @foreach($category as $cate)
-                        <option value="{{ $cate->category_id }}">{{ $cate->name }}</option>
+                            @if($products->category == $cate->category_id)
+                            <option value="{{ $cate->category_id }}" selected>{{ $cate->name }}</option>
+                            @else
+                            <option value="{{ $cate->category_id }}">{{ $cate->name }}</option>
+                            @endif
                         @endforeach
                     </select>
                 </div>
                 <div class="fieldgroup">
-                    <select name="subcategory" class="form-control" id="subcategory" disabled readonly>
-                        <option value="">Please Select Sub Category</option>
+                    <select name="subcategory" class="form-control" id="subcategory" readonly>
+                        <option value="{{ $products->category }}" selected>{{ $subcategory }}</option>
                     </select>
                 </div>
                 <div class="fieldgroup">
-                    <input type="text" name="name" id="name" placeholder="Product Name" />
+                    <input type="text" name="name" id="name" value="{{ $products->name }}" placeholder="Product Name" />
                 </div>
                 <div class="fieldgroup">
-                    <input type="text" class="numbers" name="price" id="price" placeholder="Price"/>
+                    <input type="text" class="numbers" name="price" id="price" value="{{ $products->price }}" placeholder="Price"/>
+                </div>
+                <div class="fieldgroup">
+                    <div class="alert-warning p-2">
+                        <p class="mb-0"><b>Note: </b>This will replace the existing Images<span class="float-right"><i class="fas fa-bomb"></i></span></p>
+                    </div>
                 </div>
                 <div class="fieldgroup">
                     <button type="button" class="btn btn-sm btn-block pripic">Select Primary Image <span id="labelpri"></span></button>
@@ -59,8 +71,8 @@
             <div class="form">
                 <h6 class="text-center">Description</h6>
                 <div class="fieldgroup">
-                <textarea name="description" style="height: 150px; resize: none;" id="txtEditor" class="form-control"></textarea>
-                <p class="text-right">Min Chars: <span id="count">0</span>/300</p>
+                <textarea style="height: 150px;resize: none;" name="description" id="txtEditor" class="form-control">{{ $products->description }}</textarea>
+                <p class="text-right">Min Chars: <span id="count">{{ strlen($products->description) }}</span>/300</p>
                 </div>
                 <div class="buttons mb-1">
                     <button type="button" class="btn w-100 btn-alt mr-3 back">Back</button>
@@ -72,7 +84,21 @@
         <div class="form-step js-form-step waiting hidden" data-step="3">
             <div class="form">
                 <h6 class="text-center">Specifications</h6>
-                <div id="specificatio_feilds"></div>
+                <div id="specificatio_feilds">
+                @php
+                $str1='';
+                $feild_names = array();
+                foreach($product_specification as $spec)
+                {
+                    $str1 .='<div class="fieldgroup">
+                                <input type="text" name="'.$spec->specification_id.'" value="'.$spec->value.'" class="required" placeholder="'.$spec->name.'" />
+                            </div>';
+                    array_push($feild_names,$spec->specification_id);
+                }
+                $str1 .='<input type="hidden" name="feild_name" value="'.json_encode($feild_names).'">';
+                echo $str1;
+                @endphp
+                </div>
                 <div class="buttons mb-1">
                     <button type="button" class="btn w-100 btn-alt mr-3 back">Back</button>
                     <button type="button" class="btn w-100 next3">Continue</button>
@@ -88,7 +114,7 @@
                 </div>
                 <div class="buttons mb-1">
                     <button type="button" class="btn w-100 btn-alt mr-3 back">Back</button>
-                    <button type="submit" class="btn w-100">Add Product</button>
+                    <button type="submit" class="btn w-100">Save Product</button>
                 </div>
             </div>
 		  </div>
@@ -484,7 +510,6 @@ function setupClickHandlers() {
     var subcategory = $('#subcategory').val();
     var name = $('#name').val();
     var price = $('#price').val();
-    var pripic = $('#pripic').val();
     if(cate=='')
     {
       $('#category').css('border-color','red');
@@ -517,15 +542,7 @@ function setupClickHandlers() {
     {
       $('#price').css('border-bottom','1px solid #444');
     }
-    if(pripic=='')
-    {
-      $('.pripic').css('border-color','red');
-    }
-    else
-    {
-      $('.pripic').css('border-color','#0bcc6c');
-    }
-    if((cate!='')&&(subcategory!='')&&(name!='')&&((price!='')||(price!=0))&&(pripic!=''))
+    if((cate!='')&&(subcategory!='')&&(name!='')&&((price!='')||(price!=0)))
     {
       var $currentForm = $(this).parents('.js-form-step');
 			showNextForm($currentForm);
@@ -793,10 +810,10 @@ $('#category').change(function(){
 $('.numbers').keyup(function () { 
     this.value = this.value.replace(/[^0-9\.]/g,'');
 });
-
 $('#txtEditor').keyup(function(){
     var char = $(this).val().length;
     $('#count').html(char);
 });
 </script>
+
 @endsection

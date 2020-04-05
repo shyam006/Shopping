@@ -103,4 +103,109 @@ class Product extends Controller
         }
         return redirect('/Product');
     }
+    public function edit_product(Request $req)
+    {
+        $id = base64_decode($req->id);
+        $data['category'] = DB::table('category')->get();
+        $data['product'] = DB::table('products')
+                            ->where('product_id',$id)
+                            ->get();
+        foreach($data['product'] as $product){
+        }
+        $subcategory = json_decode(DB::table('subcategory')->where('subcategory_id',$product->subcategory)->get());        
+        $data['subcategory'] = $subcategory[0]->name;
+        $data['product_specification'] = DB::table('product_specification')
+                                        ->select('product_specification.*','specification.name')
+                                        ->leftJoin('specification','specification.specification_id','product_specification.specification_id')
+                                        ->where('product_specification.product_id',$id)
+                                        ->get();
+        return view('product/editProduct',$data);
+    }
+    public function update_product(Request $req)
+    {
+        $product_id = base64_decode($req->id);
+        $product_details['category'] = $req->category;
+        $product_details['subcategory'] = $req->subcategory;
+        $product_details['name'] = $req->name;
+        $product_details['price'] = $req->price;
+        $product_details['description'] = $req->description==''?'Basic Description':$req->description;
+        $product_details['status'] = 1;
+        $result = DB::table('products')->where('product_id',$product_id)->update($product_details);
+        if($result)
+        {
+            $feilds = json_decode($req->feild_name);
+            $specification_details = array(); 
+            foreach($feilds as $spec)
+            {
+                $feild_name = $spec;
+                $data['value'] = $req->$feild_name;
+                DB::table('product_specification')->where('product_id',$product_id)->where('specification_id',$feild_name)->update($data);
+            }
+        }
+        $primary_pic = $req->file('primarypic');
+        if($primary_pic!='')
+        {
+            $name = $primary_pic->getClientOriginalName();
+            $target_path = public_path('/assets/uploads/products/'.$result.'/');
+            $primary_pic->move($target_path, $name);
+            $update_details['primary_pic'] = $name;
+        }
+        $pics = $req->file('pic');
+        if($pics!='')
+        {
+            foreach($pics as $pic)
+            {
+                $name = $pic->getClientOriginalName();
+                $target_path = public_path('/assets/uploads/products/'.$result.'/');
+                $pic->move($target_path, $name);
+                $pic_name[] = $name;    
+            }
+            $update_details['pics'] = json_encode($pic_name);
+        }
+        $update_details['modified_at'] = date('Y-m-d H:i:s');
+        $final_result = DB::table('products')->where('product_id',$product_id)->update($update_details);
+        if($final_result)
+        {
+            $req->session()->flash('status', 'Product Edited Successfully');
+        }
+        else
+        {
+            $req->session()->flash('status', 'Can\'t Edit the product, Please try again..!');
+        }
+        return redirect('/Product');
+    }
+    public function view_product(Request $req)
+    {
+        $id = base64_decode($req->id);
+        $data['product'] = json_decode(DB::table('products')
+                            ->where('product_id',$id)
+                            ->get());
+        foreach($data['product'] as $product){
+        }
+        $category = json_decode(DB::table('category')->where('category_id',$product->category)->get());
+        $data['category'] = $category[0]->name;
+        $subcategory = json_decode(DB::table('subcategory')->where('subcategory_id',$product->subcategory)->get());        
+        $data['subcategory'] = $subcategory[0]->name;
+        $data['product_specification'] = DB::table('product_specification')
+                                        ->select('product_specification.*','specification.name')
+                                        ->leftJoin('specification','specification.specification_id','product_specification.specification_id')
+                                        ->where('product_specification.product_id',$id)
+                                        ->get();
+        return view('product/viewProduct',$data);
+    }
+    public function delete(Request $req)
+    {
+        $id = base64_decode($req->id);
+        $result = DB::table('products')->where('product_id',$id)->delete();
+        if($result)
+        {
+            DB::table('product_specification')->where('product_id',$id)->delete();
+            $req->session()->flash('status', 'Product Deleted Successfully');
+        }
+        else
+        {
+            $req->session()->flash('status', 'Can\'t delete the product, Please try again..!');
+        }
+        return redirect('/Product');
+    }
 }
